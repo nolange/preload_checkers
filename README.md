@@ -38,12 +38,28 @@ after adding the checkers it does.
 ```bash
 # build libraries in CWD
 sh PATH_TO/preload_checkers/build.sh
+# need to find the DSO's
+export LD_LIBRARY_PATH=$(pwd)
 # run without checkers
 ./testpchecker
 # should count accesses to heap functions
 LD_PRELOAD=./libpchecker_heap.so ./testpchecker
 # should count accesses to heap and gettime functions
 LD_PRELOAD=./libpchecker_heap.so:./libpchecker_gettime.so ./testpchecker
+```
+
+## Making Xenomai (cobalt) stop on errors
+
+The `cobalt_assert_nrt` function will check whether the `PTHREAD_WARNSW`
+mode of the currnt thread is enabled. Only if thats the case then
+a debug signal will be raised, which will stop a debugger or
+kill the process.
+
+To use the checkers, enable the `PTHREAD_WARNSW` mode,
+which is supposed to catch unwanted mode-switches.
+
+```c
+pthread_set_mode_np(0, PTHREAD_WARNSW);
 ```
 
 # The checkers themselves
