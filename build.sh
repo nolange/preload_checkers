@@ -3,18 +3,21 @@ SRC=$(dirname "$(readlink -f "$0")")/
 OPT="-O2 -fno-plt"
 EOPT=-fno-pie
 STD="-std=c11"
+CC=gcc
 
 # PRE=musl-
 LDOPT="-Wl,--enable-new-dtags,-z,relro,-z,now -Wl,-as-needed"
 #OPT="-O2"
-LDOPT=""
-# STD="-ansi"
+#LDOPT=""
+#STD="-ansi"
+#STD="-x c++ -std=c++11 -Wall"
 #LDATOMIC=-latomic
+#CC=g++
 
-${PRE}gcc -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_gettime.c -ldl $LDATOMIC -shared -o libpchecker_gettime.so $LDOPT
-${PRE}gcc -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_heap.c  -ldl $LDATOMIC -shared -o libpchecker_heap.so $LDOPT
-${PRE}gcc -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_heap_glibc.c  -ldl $LDATOMIC -shared -o libpchecker_heap-glibc.so $LDOPT
-${PRE}gcc -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_heap_musl.c  -ldl $LDATOMIC -shared -o libpchecker_heap-musl.so $LDOPT
+${PRE}$CC -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_gettime.c -ldl $LDATOMIC -shared -o libpchecker_gettime.so $LDOPT
+${PRE}$CC -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_heap.c  -ldl $LDATOMIC -shared -o libpchecker_heap.so $LDOPT
+${PRE}$CC -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_heap_glibc.c  -ldl $LDATOMIC -shared -o libpchecker_heap-glibc.so $LDOPT
+${PRE}$CC -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}src/pchecker_heap_musl.c  -ldl $LDATOMIC -shared -o libpchecker_heap-musl.so $LDOPT
 
-${PRE}gcc -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}test/pchecker_wrapper.c -shared -o libtestpchecker_wrapper.so $LDOPT
-${PRE}gcc -g2 $OPT $STD -Wall -Wextra -pedantic $EOPT ${SRC}test/testpchecker.c -no-pie -L. -ltestpchecker_wrapper -o testpchecker $LDOPT
+${PRE}$CC -g2 $OPT $STD -Wall -Wextra -pedantic -fPIC   ${SRC}test/pchecker_wrapper.c -shared -o libtestpchecker_wrapper.so $LDOPT
+${PRE}$CC -g2 $OPT $STD -Wall -Wextra -pedantic $EOPT ${SRC}test/testpchecker.c -no-pie -L. -ltestpchecker_wrapper -o testpchecker $LDOPT

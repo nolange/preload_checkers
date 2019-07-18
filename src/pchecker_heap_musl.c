@@ -8,6 +8,10 @@
 
 #include "pchecker.h"
 
+/* Those functins are not available with musl (v1.20) */
+#define CHECKER_EXPORT_REALLOCARRAY 1
+#define CHECKER_EXPORT_PVALLOC 1
+
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -42,10 +46,6 @@ DSO_PUBLIC int posix_memalign(void **memptr, size_t alignment, size_t size);
 DSO_PUBLIC void *aligned_alloc(size_t alignment, size_t size);
 DSO_PUBLIC void *valloc(size_t size);
 DSO_PUBLIC void *pvalloc(size_t size);
-
-/* Those functins are not available with musl (v1.20) */
-#define CHECKER_EXPORT_REALLOCARRAY 1
-#define CHECKER_EXPORT_PVALLOC 1
 
 static struct function_table {
     pf_calloc_t pf_calloc;
@@ -139,7 +139,10 @@ static int tryResolve(enum EFunctionIndex func)
         int countresolved = 0;
         const char *pName = s_FunctionNames;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         struct function_table newfTable = {NULL};
+#pragma GCC diagnostic pop
         pf_void_t *pFTable = (pf_void_t *)&newfTable.pf_calloc;
 
         for (index = 0; index < eLastBaseFunction; ++index) {
@@ -167,7 +170,10 @@ static int tryResolve(enum EFunctionIndex func)
         int countresolved = 0;
         const char *pName = s_FunctionNames;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         struct function_table newfTable = {NULL};
+#pragma GCC diagnostic pop
         pf_void_t *pFTable = (pf_void_t *)&newfTable.pf_calloc;
 
         while (*pName != '\0') {
@@ -222,15 +228,14 @@ __attribute__((__constructor__(101))) static void callResolve()
 }
 
 #define DO_INIT_NO_FALLBACK(e, n)                        \
-    pf_##n##_t pf = s_ResolvedFunctions.pf_##n;          \
+    pf_##n##_t pf;                                       \
     do {                                                 \
-        int isBase = (int)e <= (int)eLastBaseFunction;   \
         int isInitDone = initIsDone();                   \
-        if (unlikely(!isInitDone || (!isBase && !pf))) { \
-            if (isBase || !isInitDone)                   \
-                tryResolve(e);                           \
+        pf = s_ResolvedFunctions.pf_##n;                 \
+        if (unlikely(!isInitDone)) { \
+            tryResolve(e);                           \
             pf = s_ResolvedFunctions.pf_##n;             \
-            if (!isBase && !pf)                          \
+            if (!pf)                          \
                 do_abort();                              \
         }                                                \
         callAssertFunction(1);                           \

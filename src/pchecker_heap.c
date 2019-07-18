@@ -337,7 +337,10 @@ static int tryResolve(enum EFunctionIndex func)
         int countresolved = 0;
         const char *pName = s_FunctionNames;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         struct function_table newfTable = {NULL};
+#pragma GCC diagnostic pop
         pf_void_t *pFTable = (pf_void_t *)&newfTable.pf_calloc;
 
         for (index = 0; index < eLastBaseFunction; ++index) {
@@ -365,7 +368,10 @@ static int tryResolve(enum EFunctionIndex func)
         int countresolved = 0;
         const char *pName = getSymbolName(func);
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         struct function_table newfTable = {NULL};
+#pragma GCC diagnostic pop
         pf_void_t *pFTable = (pf_void_t *)&newfTable.pf_calloc;
 
         {

@@ -9,6 +9,9 @@
 
 #include "pchecker.h"
 
+#define CHECKER_EXPORT_REALLOCARRAY 1
+#define CHECKER_EXPORT_PVALLOC 1
+
 #include <stddef.h>
 #include <stdlib.h>
 
@@ -55,12 +58,16 @@ static struct function_table {
     pf_malloc_t pf_malloc;
     pf_free_t pf_free;
     pf_realloc_t pf_realloc;
+#if CHECKER_EXPORT_REALLOCARRAY == 1
     pf_reallocarray_t pf_reallocarray;
+#endif
     pf_memalign_t pf_memalign;
     pf_aligned_alloc_t pf_aligned_alloc;
     pf_posix_memalign_t pf_posix_memalign;
     pf_valloc_t pf_valloc;
+#if CHECKER_EXPORT_PVALLOC == 1
     pf_pvalloc_t pf_pvalloc;
+#endif
 } s_ResolvedFunctions;
 
 enum EFunctionIndex {
@@ -68,12 +75,17 @@ enum EFunctionIndex {
     eMalloc,
     eFree,
     eRealloc,
+#if CHECKER_EXPORT_REALLOCARRAY == 1
     eReallocArray,
+#endif
     eMemalign,
     eAlignedAlloc,
     ePosixMemalign,
     eValloc,
+#if CHECKER_EXPORT_PVALLOC == 1
     ePValloc,
+#endif
+    eCount,
 
     eLastBaseFunction = eRealloc
 };
@@ -84,12 +96,17 @@ static const char *const s_FunctionNames =
     "malloc\0"
     "free\0"
     "realloc\0"
+#if CHECKER_EXPORT_REALLOCARRAY == 1
     "reallocarray\0"
+#endif
     "memalign\0"
     "aligned_alloc\0"
     "posix_memalign\0"
     "valloc\0"
-    "pvalloc\0";
+#if CHECKER_EXPORT_PVALLOC == 1
+    "pvalloc\0"
+#endif
+    ;
 /* clang-format on */
 
 /* This wrapper does not pull in all dependencies except libdl and
@@ -126,7 +143,10 @@ static int tryResolve(enum EFunctionIndex func)
         int countresolved = 0;
         const char *pName = s_FunctionNames;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
         struct function_table newfTable = {NULL};
+#pragma GCC diagnostic pop
         pf_void_t *pFTable = (pf_void_t *)&newfTable.pf_calloc;
 
         while (*pName != '\0') {
@@ -195,18 +215,18 @@ __attribute__((__constructor__(101))) static void callResolve()
         callAssertFunction(1);                                  \
     } while (0)
 
-#define DO_INIT_NO_FALLBACK(e, n)               \
-    pf_##n##_t pf = s_ResolvedFunctions.pf_##n; \
-    do {                                        \
-        int isInitDone = initIsDone();          \
-        if (unlikely(!isInitDone || !pf)) {     \
-            if (!isInitDone)                    \
-                tryResolve(e);                  \
-            pf = s_ResolvedFunctions.pf_##n;    \
-            if (!pf)                            \
-                do_abort();                     \
-        }                                       \
-        callAssertFunction(1);                  \
+#define DO_INIT_NO_FALLBACK(e, n)                        \
+    pf_##n##_t pf;                                       \
+    do {                                                 \
+        int isInitDone = initIsDone();                   \
+        pf = s_ResolvedFunctions.pf_##n;                 \
+        if (unlikely(!isInitDone)) { \
+            tryResolve(e);                           \
+            pf = s_ResolvedFunctions.pf_##n;             \
+            if (!pf)                          \
+                do_abort();                              \
+        }                                                \
+        callAssertFunction(1);                           \
     } while (0)
 
 void *calloc(size_t nmemb, size_t size)
@@ -234,12 +254,14 @@ void *realloc(void *ptr, size_t size)
     return (*pf)(ptr, size);
 }
 
+#if CHECKER_EXPORT_REALLOCARRAY == 1
 void *reallocarray(void *ptr, size_t nmemb, size_t size)
 {
     DO_INIT_NO_FALLBACK(eReallocArray, reallocarray);
 
     return (*pf)(ptr, nmemb, size);
 }
+#endif
 void *memalign(size_t alignment, size_t size)
 {
     DO_INIT_NO_FALLBACK(eMemalign, memalign);
@@ -265,12 +287,14 @@ void *valloc(size_t size)
 
     return (*pf)(size);
 }
+#if CHECKER_EXPORT_PVALLOC == 1
 void *pvalloc(size_t size)
 {
     DO_INIT_NO_FALLBACK(ePValloc, pvalloc);
 
     return (*pf)(size);
 }
+#endif
 
 #ifdef __cplusplus
 }
